@@ -1,0 +1,93 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">
+            <i class="fas fa-key me-2"></i>
+            {{ title }}
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="owner_name" class="form-label required">Owner Name</label>
+                    {{ form.owner_name(class="form-control" + (" is-invalid" if form.owner_name.errors else "")) }}
+                    {% if form.owner_name.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.owner_name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        
+                    {% endif %}
+                    <div class="form-text">Enter the owner name for this API key</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="expiry_date" class="form-label required">Expiry Date</label>
+                    {{ form.expiry_date(class="form-control" + (" is-invalid" if form.expiry_date.errors else ""), type="date") }}
+                    {% if form.expiry_date.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.expiry_date.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">Select when this API key should expire</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="hit_limit" class="form-label required">Hit Limit</label>
+                    {{ form.hit_limit(class="form-control" + (" is-invalid" if form.hit_limit.errors else ""), min="1") }}
+                    {% if form.hit_limit.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.hit_limit.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">Maximum number of times this API key can be used</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="allowed_origins" class="form-label">Allowed Origins</label>
+                    {{ form.allowed_origins(class="form-control" + (" is-invalid" if form.allowed_origins.errors else "")) }}
+                    {% if form.allowed_origins.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.allowed_origins.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">Enter allowed origins separated by spaces (e.g., http://localhost:3000 https://example.com)</div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.keys') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

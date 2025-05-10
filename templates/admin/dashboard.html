@@ -1,0 +1,332 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card primary">
+            <i class="fas fa-server fa-2x mb-3"></i>
+            <h3>{{ stats.total_requests }}</h3>
+            <p>Total Requests</p>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card success">
+            <i class="fas fa-check-circle fa-2x mb-3"></i>
+            <h3>{{ stats.successful_requests }}</h3>
+            <p>Successful Requests</p>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card danger">
+            <i class="fas fa-times-circle fa-2x mb-3"></i>
+            <h3>{{ stats.failed_requests }}</h3>
+            <p>Failed Requests</p>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card warning">
+            <i class="fas fa-key fa-2x mb-3"></i>
+            <h3>{{ api_keys|length }}</h3>
+            <p>Total API Keys</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Request Statistics (Last 7 Days)
+                </h5>
+            </div>
+            <div class="card-body" style="height: 300px;">
+                <canvas id="dailyRequestsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-clock me-2"></i>
+                    Hourly Request Distribution
+                </h5>
+            </div>
+            <div class="card-body" style="height: 300px;">
+                <canvas id="hourlyDistributionChart"></canvas>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title">
+                    <i class="fas fa-list me-2"></i>
+                    User Activity Log
+                </h5>
+                <div>
+                    <span class="badge bg-primary">Page {{ activity_data.page }} of {{ activity_data.pages or 1 }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>SL</th>
+                                <th>Timestamp</th>
+                                <th>Owner</th>
+                                <th>Name</th>
+                                <th>BRN</th>
+                                <th>DOB</th>
+                                <th>BirthplaceEN</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for activity in activity_data['items'] %}
+                            <tr>
+                                <td><input type="checkbox" class="activity-checkbox" value="{{ activity.id }}"></td>
+                                <td>{{ loop.index + (activity_data.page-1)*activity_data.per_page }}</td>
+                                <td>{{ activity.timestamp }}</td>
+                                <td>
+                                    {% if activity.api_key == 'web_ui' %}
+                                        Web UI
+                                    {% else %}
+                                        {{ api_key_owner_map.get(activity.api_key, activity.api_key[:8] ~ '...') }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ activity.details.nameEn or '' }}</td>
+                                <td>{{ activity.details.brn or '' }}</td>
+                                <td>{{ activity.details.dob or '' }}</td>
+                                <td>{{ activity.details.birthPlaceEn or '' }}</td>
+                                <td>
+                                    {% if activity.success %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-info show-details" data-bs-toggle="modal" data-bs-target="#activityDetailsModal" data-details='{{ activity.details|tojson }}'>
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if activity_data['items']|length == 0 %}
+                            <tr>
+                                <td colspan="11" class="text-center">No activity records available</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <button class="btn btn-danger mt-2" id="deleteSelectedBtn">Delete Selected</button>
+                </div>
+                
+                <!-- Pagination -->
+                {% if activity_data.pages > 1 %}
+                <nav aria-label="User activity pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if activity_data.page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin.dashboard', page=activity_data.page-1) }}">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in page_range %}
+                        <li class="page-item {{ 'active' if page_num == activity_data.page else '' }}">
+                            <a class="page-link" href="{{ url_for('admin.dashboard', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if activity_data.page < activity_data.pages %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin.dashboard', page=activity_data.page+1) }}">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single reusable modal for all activity details -->
+<div class="modal fade" id="activityDetailsModal" tabindex="-1" aria-labelledby="activityDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activityDetailsModalLabel">Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="bg-light p-3 rounded"><code id="activityDetailsContent">Loading details...</code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('selectAll').addEventListener('change', function() {
+    var checkboxes = document.querySelectorAll('.activity-checkbox');
+    for (var cb of checkboxes) {
+        cb.checked = this.checked;
+    }
+});
+document.getElementById('deleteSelectedBtn').addEventListener('click', function() {
+    var checked = Array.from(document.querySelectorAll('.activity-checkbox:checked'));
+    if (checked.length === 0) {
+        alert('No activities selected.');
+        return;
+    }
+    if (!confirm('Delete selected activity log entries?')) return;
+    var ids = checked.map(cb => cb.value);
+    fetch("{{ url_for('admin.delete_activities') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
+        },
+        body: JSON.stringify({ids})
+    })
+    .then(resp => resp.json())
+    .then(data => window.location.reload())
+    .catch(err => alert('Error deleting activities.'));
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Requests chart (last 7 days)
+        var requestsCtx = document.getElementById('dailyRequestsChart').getContext('2d');
+        var requestsChart = new Chart(requestsCtx, {
+            type: 'line',
+            data: {
+                labels: {{ daily_labels|safe }},
+                datasets: [{
+                    label: 'Requests',
+                    data: {{ daily_data|safe }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Hourly distribution chart
+        var hourlyCtx = document.getElementById('hourlyDistributionChart').getContext('2d');
+        var hourlyDistChart = new Chart(hourlyCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ hourly_labels|safe }},
+                datasets: [{
+                    label: 'Requests',
+                    data: {{ hourly_data|safe }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Hour of Day'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return 'Hour: ' + tooltipItems[0].label + ':00';
+                            },
+                            label: function(context) {
+                                return 'Requests: ' + context.parsed.y;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Activity details modal
+        const activityDetailsModal = document.getElementById('activityDetailsModal');
+        const detailsContent = document.getElementById('activityDetailsContent');
+        
+        activityDetailsModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const details = button.getAttribute('data-details');
+            try {
+                // The details are already a JSON string, so we don't need to parse and stringify again
+                detailsContent.textContent = JSON.stringify(JSON.parse(details), null, 2);
+            } catch (error) {
+                console.error('Error parsing details:', error);
+                detailsContent.textContent = 'Error displaying details: ' + error.message;
+            }
+        });
+    });
+</script>
+{% endblock %}

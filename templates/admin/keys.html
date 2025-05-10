@@ -1,0 +1,131 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}API Keys Management{% endblock %}
+
+{% block header %}API Keys Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title">
+            <i class="fas fa-key me-2"></i>
+            API Keys
+        </h5>
+        <a href="{{ url_for('admin.add_key') }}" class="btn btn-primary btn-rounded">
+            <i class="fas fa-plus me-2"></i>
+            Add New Key
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Owner</th>
+                        <th>API Key</th>
+                        <th>Expiry Date</th>
+                        <th>Hit Limit</th>
+                        <th>Usage</th>
+                        <th>Allowed Origins</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key in api_keys %}
+                    <tr>
+                        <td>{{ key.owner_name }}</td>
+                        <td>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-sm key-value" readonly value="{{ key.key }}">
+                                <button class="btn btn-sm btn-outline-secondary copy-btn" data-key="{{ key.key }}" data-bs-toggle="tooltip" title="Copy to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td>{{ key.expiry_date }}</td>
+                        <td>{{ key.hit_limit }}</td>
+                        <td>
+                            <div class="progress" style="height: 8px;">
+                                {% set percentage = (key.hits_used / key.hit_limit * 100) if key.hit_limit > 0 else 0 %}
+                                <div class="progress-bar 
+                                    {% if percentage > 90 %}bg-danger
+                                    {% elif percentage > 70 %}bg-warning
+                                    {% else %}bg-success{% endif %}" 
+                                    role="progressbar" style="width: {{ percentage }}%"></div>
+                            </div>
+                            <span class="text-muted small">{{ key.hits_used }} / {{ key.hit_limit }}</span>
+                        </td>
+                        <td>
+                            {% if key.allowed_origins %}
+                            <span class="text-muted small" data-bs-toggle="tooltip" title="{{ key.allowed_origins|join(', ') }}">
+                                {{ key.allowed_origins|length }} origin(s)
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">All origins</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if key.active and key.is_valid() %}
+                            <span class="badge bg-success">Active</span>
+                            {% elif not key.active %}
+                            <span class="badge bg-danger">Disabled</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Expired</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin.edit_key', key_id=key.id) }}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('admin.toggle_key', key_id=key.id) }}" class="btn btn-sm {% if key.active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" data-bs-toggle="tooltip" title="{% if key.active %}Disable{% else %}Enable{% endif %}">
+                                    <i class="fas {% if key.active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_key', key_id=key.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete" onclick="return confirm('Are you sure you want to delete this API key?');">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if api_keys|length == 0 %}
+                    <tr>
+                        <td colspan="8" class="text-center">No API keys available</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Copy API key to clipboard
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const key = this.dataset.key;
+                navigator.clipboard.writeText(key).then(() => {
+                    // Change button tooltip
+                    const tooltip = bootstrap.Tooltip.getInstance(this);
+                    tooltip.hide();
+                    
+                    this.setAttribute('data-bs-original-title', 'Copied!');
+                    tooltip.show();
+                    
+                    // Reset tooltip after a delay
+                    setTimeout(() => {
+                        this.setAttribute('data-bs-original-title', 'Copy to clipboard');
+                    }, 2000);
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Admin Profile{% endblock %}
+
+{% block header %}Admin Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-user-shield me-2"></i>
+                    Change Password
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.profile') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Current Password</label>
+                        {{ form.current_password(class="form-control" + (" is-invalid" if form.current_password.errors else "")) }}
+                        {% if form.current_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.current_password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">New Password</label>
+                        {{ form.new_password(class="form-control" + (" is-invalid" if form.new_password.errors else "")) }}
+                        {% if form.new_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.new_password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Password must be at least 6 characters long</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label">Confirm New Password</label>
+                        {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else "")) }}
+                        {% if form.confirm_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.confirm_password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    API Usage Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    The Birth/Death Verification API uses an authentication mechanism based on API keys.
+                    Each client that wants to use the API needs to be assigned a unique API key.
+                </p>
+                
+                <h6 class="mt-4">How API Keys Work</h6>
+                <ul>
+                    <li><strong>Authentication:</strong> API keys must be included in the request header as <code>X-API-Key</code>.</li>
+                    <li><strong>Rate Limiting:</strong> Each key has a limit on the number of requests it can make.</li>
+                    <li><strong>Expiration:</strong> Keys can be set to expire after a certain date and time.</li>
+                    <li><strong>Domain Restriction:</strong> Keys can be restricted to specific origins/domains.</li>
+                </ul>
+                
+                <h6 class="mt-4">API Usage Example</h6>
+                <div class="p-3 bg-light rounded">
+<pre><code>curl -X GET http://localhost:5000/api/captcha \
+  -H "X-API-Key: YOUR_API_KEY_HERE"</code></pre>
+                </div>
+                
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Remember to create and distribute API keys securely. Never share API keys in public repositories or insecure channels.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

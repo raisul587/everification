@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birth Registration Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #captcha-container {
+            margin: 15px 0;
+        }
+        #captcha-image {
+            margin-bottom: 10px;
+            max-width: 200px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            font-family: monospace;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="message" style="display: none;"></div>
+    <div id="result" style="display: none;"></div>
+    <form id="verificationForm">
+        <div class="form-group">
+            <label for="regNumber">Birth Registration Number:</label>
+            <input type="text" id="regNumber" name="regNumber" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="dob">Date of Birth (YYYY-MM-DD):</label>
+            <input type="text" id="dob" name="dob" placeholder="YYYY-MM-DD" required>
+        </div>
+        
+        <div class="form-group" id="captcha-container">
+            <img id="captcha-image" src="" alt="Captcha">
+            <label for="captcha">CAPTCHA Answer:</label>
+            <input type="text" id="captcha" name="captcha" required>
+        </div>
+        
+        <button type="submit">Verify</button>
+    </form>
+
+    <script>
+        function refreshCaptcha() {
+            fetch('/get_captcha')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('captcha-image').src = url;
+                });
+        }
+
+        $(document).ready(function() {
+            // Load captcha on page load
+            refreshCaptcha();
+
+            $('#verificationForm').on('submit', function(e) {
+                e.preventDefault();
+                const formData = {
+                    regNumber: $('#regNumber').val(),
+                    dob: $('#dob').val(),
+                    captcha: $('#captcha').val()
+                };
+                
+                $('#message').hide();
+                $('#result').hide();
+                
+                $.ajax({
+                    url: '/submit',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        if (response.error) {
+                            $('#message').text(response.error).show();
+                            refreshCaptcha();
+                        } else if (response.redirect) {
+                            window.location.href = response.redirect;
+                        }
+                    },
+                    error: function() {
+                        $('#message').text('An error occurred. Please try again.').show();
+                        refreshCaptcha();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
