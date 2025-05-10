@@ -2,6 +2,7 @@
 Flask>=2.0.0
 Flask-WTF>=1.0.0
 Werkzeug>=2.0.0
+gunicorn>=20.1.0
 
 # Database
 SQLAlchemy>=1.4.0
@@ -26,4 +27,3 @@ bcrypt>=3.2.0
 # Development & Testing
 pytest>=7.0.0
 pytest-flask>=1.2.0
-gunicorn

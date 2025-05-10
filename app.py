@@ -38,11 +38,20 @@ def regex_match(value, pattern):
 # Configure Chrome options
 chrome_options = Options()
 chrome_options.add_argument('--headless')
-chrome_options.add_argument('--start-maximized')
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 chrome_options.add_argument('--disable-gpu')
-chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+chrome_options.add_argument('--window-size=1920,1080')
+chrome_options.add_argument('--disable-extensions')
+chrome_options.add_argument('--proxy-server="direct://"')
+chrome_options.add_argument('--proxy-bypass-list=*')
+chrome_options.add_argument('--start-maximized')
+chrome_options.add_argument('--disable-setuid-sandbox')
+chrome_options.add_argument('--disable-infobars')
+chrome_options.add_argument('--ignore-certificate-errors')
+chrome_options.add_argument('--allow-running-insecure-content')
+chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
+chrome_options.add_experimental_option('useAutomationExtension', False)
 
 # Initialize WebDriver
 driver = None
@@ -50,8 +59,20 @@ driver = None
 def init_driver():
     global driver
     if driver is None:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        try:
+            # First try to find Chrome in the standard Linux path (for Render)
+            chrome_path = '/usr/bin/google-chrome'
+            service = Service(chrome_path)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        except Exception as e:
+            print(f"Failed to initialize with standard Chrome path: {e}")
+            try:
+                # Fallback to ChromeDriverManager (for local development)
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+            except Exception as e:
+                print(f"Failed to initialize driver: {e}")
+                raise
 
 def get_captcha_screenshot():
     try:
